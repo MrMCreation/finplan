@@ -1,0 +1,611 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mr. M Financial Planner</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+  <style>
+    :root{
+      --bg:#ffffff;
+      --muted:#6b7280;
+      --accent:#0f172a;
+      --card:#f8fafc;
+      --success:#10b981;
+      --danger:#ef4444;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--accent);
+      padding:28px;      display:flex;
+      justify-content:center;
+      font-size:15px;
+      line-height:1.3;
+    }
+    .container{
+      width:100%;
+      max-width:900px;
+    }
+    header{
+      margin-bottom:18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 20px;
+    }
+    h1{
+      margin:0 0 6px 0;
+      font-size:20px;
+    }
+    p.lead{margin:0;color:var(--muted);font-size:13px}
+    .card{
+      background:var(--card);
+      border-radius:12px;
+      padding:18px;
+      margin-bottom:14px;
+      box-shadow: 0 1px 0 rgba(15,23,42,0.03);
+    }
+    label{font-weight:600;font-size:13px;margin-bottom:6px;display:block}
+    .input, .small-input, .select-input {
+      width:100%;
+      padding:10px 12px;
+      border-radius:8px;
+      border:1px solid #e6edf3;
+      background:white;
+      font-size:15px;
+      height: 40px; 
+    }
+    .select-input { font-size: 14px; }
+    .small-input{width:160px}
+    
+    .data-grid {
+      display: grid;
+      grid-template-columns: auto 1.5fr 140px 110px 2fr 48px;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .data-grid .title-input { font-weight: normal; }
+    .drag-handle {
+      cursor: grab;
+      color: var(--muted);
+      opacity: 0.5;
+      font-size: 20px;
+      text-align: center;
+      user-select: none;
+    }
+    .sortable-ghost {
+      opacity: 0.4;
+      background: #c7d2fe;
+    }
+
+    .actions{display:flex;gap:8px;align-items:center}
+    .plus{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width:36px;height:36px;border-radius:8px;border:1px dashed #e2e8f0;
+      cursor:pointer;background:transparent;font-weight:700;color:var(--muted)
+    }
+    .total-line{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:12px;
+      margin-top:8px;
+      border-radius:8px;
+      background:linear-gradient(180deg, rgba(255,255,255,0.6), rgba(249,250,251,0.6));
+      font-weight:700;
+    }
+    .total-income-bg { background: rgba(16, 185, 129, 0.08); }
+    .total-expense-bg { background: rgba(239, 68, 68, 0.08); }
+    .total-invest-bg { background: rgba(59, 130, 246, 0.08); }
+    .total-private-bg { background: rgba(245, 158, 11, 0.08); }
+    .total-projection-bg { background: rgba(14, 165, 233, 0.08); }
+    
+    .muted{color:var(--muted);font-weight:600}
+    .small{font-size:13px;color:var(--muted)}
+    .money{font-variant-numeric:tabular-nums;}
+    .remove{
+      background:transparent;border:0;color:var(--danger);cursor:pointer;font-weight:700;
+    }
+    .percent-row{display:flex;gap:12px;align-items:center}
+    input[type="range"]{width:180px}
+    
+    .ratio-presets { display: flex; gap: 8px; margin-bottom: 14px; }
+    .ratio-item { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; }
+    .ratio-label { font-size: 11px; font-weight: 600; color: var(--muted); margin-bottom: 4px; display: block; }
+    .ratio-btn { width: 100%; padding: 8px 12px; font-size: 14px; font-weight: 700; border: 1px solid #e2e8f0; background-color: #fff; color: var(--accent); border-radius: 8px; cursor: pointer; transition: background-color 0.2s, color 0.2s, border-color 0.2s; }
+    .ratio-btn:hover { background-color: #f1f5f9; }
+    .ratio-btn.active { background-color: var(--accent); color: #fff; border-color: var(--accent); }
+    
+    .fire-toggle { display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 4px 0; }
+    .fire-toggle h2 { margin: 0; font-size: 18px; }
+    .fire-toggle .arrow, .inline-arrow { font-size: 18px; transition: transform 0.3s; }
+    .inline-arrow { display: inline-block; font-size: 16px; margin-left: 8px; }
+    
+    .fire-content { display: none; padding-top: 14px; border-top: 1px solid #e2e8f0; margin-top: 10px; }
+    .projection-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .readonly-input { background-color: #f1f5f9; font-weight: 600; }
+    .fire-result { margin-top: 14px; padding: 12px; background-color: #eef2ff; border-radius: 8px; text-align: center; font-weight: 600; color: #4338ca; }
+
+    .total-income-bg .muted { color: #059669; }
+    .total-expense-bg .muted { color: #b91c1c; }
+    .total-invest-bg .muted { color: #2563eb; }
+    .total-private-bg .muted { color: #d97706; }
+    .total-projection-bg .muted { color: #0891b2; }
+
+    /* --- START MODIFIKASI HIGHLIGHT ANGKA TOTAL --- */
+    .total-line .money {
+      color: #fff;
+      padding: 4px 10px;
+      border-radius: 7px;
+    }
+    .total-income-bg .money { background-color: #28c08e; }
+    .total-expense-bg .money { background-color: #f15757; }
+    .total-invest-bg .money { background-color: #4f8ff7; }
+    .total-private-bg .money { background-color: #f6a823; }
+    .total-projection-bg .money { background-color: #26aeeb; }
+    
+    /* Warna kustom untuk FIRE Planner */
+    .total-projection-expense-bg { background: rgba(249, 115, 22, 0.08); }
+    .total-projection-expense-bg .muted { color: #f97316; }
+    .total-projection-expense-bg .money { background-color: #fa812d; }
+    
+    .total-fire-target-bg { background: rgba(139, 92, 246, 0.08); }
+    .total-fire-target-bg .muted { color: #8b5cf6; }
+    .total-fire-target-bg .money { background-color: #976cf7; }
+    /* --- END MODIFIKASI HIGHLIGHT ANGKA TOTAL --- */
+
+    /* --- START PERBAIKAN UI IKON --- */
+    .header-controls {
+      display: grid;
+      /* START MODIFIKASI: Proporsi: Nama, Mata Uang, 3x Tombol */
+      grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr;
+      gap: 8px;
+      align-items: center;
+      width: 100%;
+      max-width: 480px; /* Disesuaikan agar lebih kompak */
+      /* END MODIFIKASI */
+    }
+    .header-controls > .input,
+    .header-controls > .select-input {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 40px;
+      font-weight: 600;
+      font-size: 14px;
+      padding: 0 12px;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+    }
+    .header-controls > .select-input {
+      justify-content: flex-start;
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+      background-position: right 0.5rem center;
+      background-repeat: no-repeat;
+      background-size: 1.5em 1.5em;
+    }
+    #custom-currency-input { 
+      margin-top: 6px; 
+      grid-column: 1 / -1;
+    }
+    /* --- END PERBAIKAN UI IKON --- */
+    
+    @media (max-width: 768px){
+      header { flex-direction: column; align-items: stretch; }
+      .header-controls { max-width: none; }
+    }
+
+    @media (max-width: 640px){
+      body { padding: 14px; }
+      .container{ padding:0; }
+      .card { padding: 14px; }
+      .data-grid { grid-template-columns: auto 1fr 110px; gap: 8px; }
+      .data-grid .frequency-select, .data-grid .description-input, .data-grid .actions { grid-column: 2 / -1; }
+      .select-input { font-size: 12px; padding: 10px 8px; }
+      .small-input{ width:100%; }
+      .percent-row { flex-direction: column; align-items: stretch; }
+      input[type="range"]{ width:100%; }
+      .projection-grid { grid-template-columns: 1fr; }
+      /* START MODIFIKASI: Layout header mobile */
+      .header-controls { grid-template-columns: 1fr 1fr 1fr; }
+      #planner-name-input,
+      .header-controls > select { grid-column: 1 / -1; } /* Nama & Dropdown jadi full-width di mobile */
+      /* END MODIFIKASI */
+    }
+    
+    .print-title { display: none; }
+    .print-hide { /* Helper class for elements to hide on print */ }
+    
+    .print-only { display: none; }
+
+    @media print {
+      body { padding: 20px; color: #000; background: #fff; font-size: 11pt; }
+      * { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; }
+      header, .plus, .actions, .percent-row, .ratio-presets, #fire-toggle .arrow, .io-buttons, .print-hide, .drag-handle { display: none !important; }
+      .container { max-width: 100%; }
+      .card { border: 1px solid #ddd; box-shadow: none; page-break-inside: avoid; }
+      .input, .select-input { border: none !important; background: transparent !important; padding: 2px 0 !important; -webkit-appearance: none; appearance: none; font-size: 1em; color: #000; }
+      input.money-input, input[type=number] { font-weight: bold; text-align: right; }
+      .title-input, .description-input { font-weight: normal !important; text-align: left; }
+      .select-input { -moz-appearance: none; text-indent: 1px; text-overflow: ''; font-weight: normal; text-align: left; }
+      .readonly-input { background: #eee !important; padding: 4px !important; text-align: left; }
+      
+      #fire-initial-savings, 
+      #fire-return-input, 
+      #fire-years-input,
+      #invest-years,
+      #invest-months,
+      #invest-return,
+      #invest-tax,
+      #fire-inflation,
+      #fire-tax {
+        text-align: left !important;
+      }
+      #invest-projection-toggle .inline-arrow {
+          display: none !important;
+      }
+
+      input::placeholder { color: transparent !important; }
+      .data-grid { grid-template-columns: 1.5fr 100px 80px 2fr; gap: 15px; }
+      .total-line { border: 1px solid #eee; }
+      .fire-result { background: #eef2ff !important; color: #4338ca !important; border: 1px solid #c7d2fe !important; }
+      .print-title { display: block; font-size: 22pt; font-weight: bold; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 10px; text-align: center; }
+      #fire-card { page-break-before: always; }
+      #fire-content, #invest-projection-content { display: block !important; border-top: none; padding-top: 0; }
+      #fire-toggle { display: block; }
+      #fire-toggle h2 { font-size: 1.2em; margin-bottom: 1em; }
+      .is-empty { display: none !important; }
+
+      .print-only { display: block; }
+      .print-signature {
+        margin-top: 50px;
+        font-size: 10pt;
+        line-height: 1.5;
+        page-break-inside: avoid;
+      }
+      .signature-name {
+        font-weight: bold;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>FINANCIAL PLANNER</h1>
+        <p class="lead">Kemewahan sejati adalah kebebasan atas dirimu sendiri — Mr. M</p>
+      </div>
+      <!-- --- START PERBAIKAN UI HEADER IKON --- -->
+      <div class="header-controls">
+        <!-- START MODIFIKASI: Input Nama Pengguna -->
+        <input type="text" id="planner-name-input" class="input print-hide" placeholder="Nama">
+        <!-- END MODIFIKASI: Input Nama Pengguna -->
+        <select id="currency-select" class="select-input" title="Pilih Mata Uang">
+          <option value="Rp">Rp</option><option value="$">$</option><option value="AUD">AUD</option>
+          <option value="JPY">JPY</option><option value="CNY">CNY</option><option value="custom">Custom...</option>
+        </select>
+        <button id="export-btn" class="input" title="Export Plan">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </button>
+        <label for="import-file" class="input" style="cursor:pointer;" title="Import Plan">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </label>
+        <input type="file" id="import-file" accept=".json" style="display:none;">
+        <button id="print-btn" class="input" title="Print Laporan">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        </button>
+        <input type="text" id="custom-currency-input" class="input" style="display:none; grid-column: 1 / -1;" placeholder="Simbol Mata Uang">
+      </div>
+      <!-- --- END PERBAIKAN UI HEADER IKON --- -->
+    </header>
+
+    <!-- PENDAPATAN -->
+    <section class="card" id="pendapatan-card">
+    <div class="print-title">FINANCIAL PLANNING REPORT</div>
+        <div style="margin-bottom:8px;"><label>PENDAPATAN</label></div>
+        <div id="pendapatan-list"></div>
+        <div class="print-hide" style="margin-top:8px"><button id="add-income" class="plus" title="Tambah Pendapatan">＋</button><span class="small" style="margin-left:8px">Tambah Pendapatan</span></div>
+        <div class="total-line total-income-bg" style="margin-top:12px"><div class="muted">Total Pendapatan</div><div id="total-pendapatan" class="money">Rp 0</div></div>
+    </section>
+
+    <!-- PENGELUARAN WAJIB -->
+    <section class="card" id="pengeluaran-card">
+        <div style="margin-bottom:8px"><label>PENGELUARAN WAJIB</label><div class="small">Pengeluaran yang hanya bersifat wajib bukan pribadi</div></div>
+        <div id="pengeluaran-list"></div>
+        <div class="print-hide" style="margin-top:8px"><button id="add-expense" class="plus" title="Tambah Pengeluaran">＋</button><span class="small" style="margin-left:8px">Tambah Pengeluaran</span></div>
+        <div class="total-line total-expense-bg" style="margin-top:12px"><div class="muted">Total Pengeluaran Wajib</div><div id="total-pengeluaran" class="money">Rp 0</div></div>
+    </section>
+
+    <!-- PERSENTASE INVESTASI -->
+    <section class="card" id="invest-card">
+        <div style="margin-bottom:8px">
+            <label>INVESTASI</label>
+            <div class="ratio-presets">
+              <div class="ratio-item"><span class="ratio-label">Balanced</span><button class="ratio-btn" data-percent="50">1:1</button></div>
+              <div class="ratio-item"><span class="ratio-label">Focused</span><button class="ratio-btn" data-percent="67">2:1</button></div>
+              <div class="ratio-item"><span class="ratio-label">Strategic</span><button class="ratio-btn" data-percent="75">3:1</button></div>
+              <div class="ratio-item"><span class="ratio-label">Optimum</span><button class="ratio-btn" data-percent="80">4:1</button></div>
+              <div class="ratio-item"><span class="ratio-label">Maximum</span><button class="ratio-btn" data-percent="83">5:1</button></div>
+            </div>
+            <div class="percent-row" style="margin-top:6px"><input type="range" id="percent-range" min="50" max="100" value="83"><input id="percent-input" class="small-input" inputmode="numeric" value="83"> <span class="small">%</span></div>
+            <div class="small" style="margin-top:6px">Nilai investasi dihitung dari pendapatan setelah dikurangi pengeluaran wajib</div>
+        </div>
+        <div class="total-line total-invest-bg" style="margin-top:12px"><div class="muted">Budget Investasi</div><div id="jumlah-invest" class="money">Rp 0</div></div>
+        <div class="total-line total-private-bg" style="margin-top:8px"><div class="muted">Budget Pengeluaran Pribadi</div><div id="sisa-pribadi" class="money">Rp 0</div></div>
+        
+        <div style="margin-top:20px; padding-top:14px; border-top:1px solid #e2e8f0;">
+            <div id="invest-projection-content" style="display: none; margin-bottom: 12px;">
+                <label>PROYEKSI INVESTASI</label>
+                <div class="projection-grid">
+                    <div><label style="font-weight: 400; color: var(--muted);">Waktu Investasi (Tahun)</label><input type="number" step="1" id="invest-years" class="input" placeholder="Contoh: 10"></div>
+                    <div><label style="font-weight: 400; color: var(--muted);">Waktu Investasi (Bulan)</label><input type="number" step="1" id="invest-months" class="input" placeholder="Contoh: 0"></div>
+                </div>
+                <div style="margin-top:10px;"><label style="font-weight: 400; color: var(--muted);">Estimasi Return Tahunan (%)</label><input type="number" step="0.01" id="invest-return" class="input" placeholder="Contoh: 8"></div>
+                <div style="margin-top:10px;">
+                    <label style="font-weight: 400; color: var(--muted);">Pajak (%)</label><input type="number" step="0.01" id="invest-tax" class="input" placeholder="Contoh: 10">
+                </div>
+            </div>
+            <div id="invest-projection-toggle" class="total-line total-projection-bg" style="cursor: pointer; margin-top:0;">
+                <div class="muted">Proyeksi Nilai Investasi<span class="inline-arrow">⏷</span></div>
+                <div id="projected-savings" class="money">Rp 0</div>
+            </div>
+        </div>
+    </section>
+
+    <div class="print-only print-signature">
+      Disusun oleh,
+      <br><br><br><br>
+      <span class="signature-name" id="print-signature-name-1">(Nama)</span>,<br>
+      menggunakan Mr. M Financial Planner.
+    </div>
+
+    <!-- FIRE CALCULATOR SECTION -->
+    <section class="card" id="fire-card">
+        <div class="print-title">INVESTMENT PLANNING REPORT</div>
+        <div id="fire-toggle" class="fire-toggle">
+            <h2>FIRE PLANNER</h2>
+            <span class="arrow">⏷</span>
+        </div>
+        <div id="fire-content" class="fire-content">
+            <div style="margin-bottom:8px">
+                <label>PROYEKSI PENGELUARAN PENSIUN</label>
+                <div class="small">Perkiraan pengeluaran yang ingin dicapai saat pensiun</div>
+            </div>
+            <div id="fire-expense-list"></div>
+            <div class="print-hide" style="margin-top:8px">
+                <button id="add-fire-expense" class="plus" title="Tambah Proyeksi">＋</button>
+                <span class="small" style="margin-left:8px">Tambah Proyeksi</span>
+            </div>
+            <div class="total-line total-projection-expense-bg" style="margin-top:12px;">
+                <div class="muted">Total Proyeksi Pengeluaran</div>
+                <div id="fire-total-monthly" class="money">Rp 0</div>
+            </div>
+            <div class="total-line total-fire-target-bg" style="margin-top:8px;">
+                <div class="muted">Target FIRE</div>
+                <div id="fire-target-number" class="money">Rp 0</div>
+            </div>
+            <div style="margin-top:20px; padding-top:14px; border-top:1px solid #e2e8f0;">
+                <label>FIRE STRATEGY</label>
+                <div><label style="font-weight: 400; color: var(--muted);">Tabungan Awal</label><input id="fire-initial-savings" class="input money-input" inputmode="numeric" placeholder="Contoh: 50000000"></div>
+                <div style="margin-top:10px;"><label style="font-weight: 400; color: var(--muted);">Investasi Bulanan (Otomatis dari Budget Investasi)</label><input id="fire-monthly-invest" class="input readonly-input" readonly></div>
+                <div class="projection-grid" style="margin-top:10px;">
+                    <div><label style="font-weight: 400; color: var(--muted);">Est. Return Tahunan (%)</label><input type="number" step="0.01" id="fire-return-input" class="input" placeholder="Contoh: 8"></div>
+                    <div><label style="font-weight: 400; color: var(--muted);">Target Waktu (Tahun)</label><input type="number" step="0.1" id="fire-years-input" class="input" placeholder="Contoh: 20"></div>
+                </div>
+                <div class="projection-grid" style="margin-top:10px;">
+                    <div><label style="font-weight: 400; color: var(--muted);">Est. Inflasi (%)</label><input type="number" step="0.01" id="fire-inflation" class="input" placeholder="Contoh: 4"></div>
+                    <div><label style="font-weight: 400; color: var(--muted);">Pajak (%)</label><input type="number" step="0.01" id="fire-tax" class="input" placeholder="Contoh: 10"></div>
+                </div>
+                <div id="fire-result-display" class="fire-result" style="display:none;"></div>
+            </div>
+        </div>
+    </section>
+
+    <div class="print-only print-signature">
+      Disusun oleh,
+      <br><br><br><br>
+      <span class="signature-name" id="print-signature-name-2">(Nama)</span>,<br>
+      menggunakan Mr. M Investment Planner.
+    </div>
+
+    <!-- START MODIFIKASI: Footer -->
+    <footer class="print-hide" style="text-align: center; margin-top: 28px; font-size: 13px; color: var(--muted);">
+      © Mr. M Creation
+    </footer>
+    <!-- END MODIFIKASI: Footer -->
+
+  </div>
+
+  <script>
+    function parseInteger(v){if(v===undefined||v===null)return 0;if(typeof v==='number')return Math.round(v);const c=String(v).replace(/[^\d]/g,'');const n=parseInt(c,10);return isNaN(n)?0:n}
+    function parseDecimal(v){if(v===undefined||v===null)return 0;if(typeof v==='number')return v;const c=String(v).replace(/,/g,'.').replace(/[^\d\.]/g,'');const n=parseFloat(c);return isNaN(n)?0:n}
+    const currencyConfig={'Rp':{prefix:'Rp\u00A0',separator:'.'},'$':{prefix:'$\u00A0',separator:','},AUD:{prefix:'A$\u00A0',separator:','},JPY:{prefix:'¥\u00A0',separator:','},CNY:{prefix:'¥\u00A0',separator:','}};let currentCurrency='Rp';
+    function fmtMoney(n){const c=currencyConfig[currentCurrency]||{prefix:currentCurrency+'\u00A0',separator:','};return c.prefix+String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g,c.separator)}
+    function formatForDisplay(n,s='.'){return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,s)}
+    function unformatForEditing(v){return String(v).replace(/[\.\,]/g,'')}
+    const allRefs={pendapatanList:document.getElementById('pendapatan-list'),addIncomeBtn:document.getElementById('add-income'),totalPendapatanEl:document.getElementById('total-pendapatan'),pengeluaranList:document.getElementById('pengeluaran-list'),addExpenseBtn:document.getElementById('add-expense'),totalPengeluaranEl:document.getElementById('total-pengeluaran'),percentRange:document.getElementById('percent-range'),percentInput:document.getElementById('percent-input'),jumlahInvestEl:document.getElementById('jumlah-invest'),sisaPribadiEl:document.getElementById('sisa-pribadi'),ratioButtons:document.querySelectorAll('.ratio-btn'),fireToggle:document.getElementById('fire-toggle'),fireContent:document.getElementById('fire-content'),fireExpenseList:document.getElementById('fire-expense-list'),addFireExpenseBtn:document.getElementById('add-fire-expense'),fireTotalMonthlyEl:document.getElementById('fire-total-monthly'),fireTargetNumberEl:document.getElementById('fire-target-number'),fireMonthlyInvestEl:document.getElementById('fire-monthly-invest'),fireReturnInput:document.getElementById('fire-return-input'),fireYearsInput:document.getElementById('fire-years-input'),fireResultDisplay:document.getElementById('fire-result-display'),currencySelect:document.getElementById('currency-select'),customCurrencyInput:document.getElementById('custom-currency-input'),exportBtn:document.getElementById('export-btn'),importFile:document.getElementById('import-file'),printBtn:document.getElementById('print-btn'),investYears:document.getElementById('invest-years'),investMonths:document.getElementById('invest-months'),investReturn:document.getElementById('invest-return'),projectedSavingsEl:document.getElementById('projected-savings'),fireInitialSavings:document.getElementById('fire-initial-savings'),investProjectionToggle:document.getElementById('invest-projection-toggle'),investProjectionContent:document.getElementById('invest-projection-content'),investTax:document.getElementById('invest-tax'),fireInflation:document.getElementById('fire-inflation'),fireTax:document.getElementById('fire-tax'),plannerNameInput:document.getElementById('planner-name-input')};let lastEditedFIREInput=null;
+    function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+    
+    function createDataRow(type, {title='', value=0, frequency='monthly', description=''}) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'data-grid';
+        const isExpense = type === 'expense' || type === 'fire';
+        const freqOptions = `
+            ${isExpense ? `<option value="onetime" ${frequency === 'onetime' ? 'selected' : ''}>One Time</option>` : ''}
+            <option value="monthly" ${frequency === 'monthly' ? 'selected' : ''}>Monthly</option>
+            <option value="quarterly" ${frequency === 'quarterly' ? 'selected' : ''}>Quarterly</option>
+            <option value="semester" ${frequency === 'semester' ? 'selected' : ''}>Semester</option>
+            <option value="annually" ${frequency === 'annually' ? 'selected' : ''}>Annually</option>
+        `;
+        wrapper.innerHTML = `
+            <span class="drag-handle">⠿</span>
+            <input class="input title-input" value="${escapeHtml(title)}">
+            <input inputmode="numeric" class="input money-input" value="${value}">
+            <select class="select-input frequency-select">${freqOptions}</select>
+            <input class="input description-input" placeholder="Keterangan" value="${escapeHtml(description)}">
+            <div class="actions"><button class="remove" title="Hapus">✕</button></div>`;
+        
+        wrapper.querySelectorAll('input, select').forEach(el => {
+            el.addEventListener('input', scheduleSave);
+            el.addEventListener('change', scheduleSave);
+        });
+        wrapper.querySelector('.remove').addEventListener('click', () => { wrapper.remove(); recalc(); });
+        return wrapper;
+    }
+
+    const defaultIncomes=[{title:'Pendapatan Utama (Bersih)',value:0, frequency: 'monthly'}];
+    const defaults=[
+        {title:'Pengeluaran Wajib 1', value:0},
+        {title:'Pengeluaran Wajib 2', value:0},
+        {title:'Pengeluaran Wajib 3', value:0}
+    ];
+    const defaultFireExpenses=[
+        {title:'Proyeksi Kebutuhan 1', value:0, frequency:'monthly'},
+        {title:'Proyeksi Kebutuhan 2', value:0, frequency:'monthly'},
+        {title:'Proyeksi Kebutuhan 3', value:0, frequency:'monthly'}
+    ];
+    
+    allRefs.addIncomeBtn.addEventListener('click',()=>{allRefs.pendapatanList.appendChild(createDataRow('income', {title: 'Pendapatan Tambahan'})); recalc()});
+    allRefs.addExpenseBtn.addEventListener('click',()=>{allRefs.pengeluaranList.appendChild(createDataRow('expense', {title: 'Pengeluaran Baru'})); recalc()});
+    allRefs.percentRange.addEventListener('input',()=>{allRefs.percentInput.value=allRefs.percentRange.value;recalc()});
+    allRefs.percentInput.addEventListener('input',recalc);
+    allRefs.percentInput.addEventListener('blur',()=>{let v=parseInteger(allRefs.percentInput.value);if(v<50)v=50;if(v>100)v=100;allRefs.percentInput.value=v;allRefs.percentRange.value=v;recalc()});
+    allRefs.ratioButtons.forEach(b=>{b.addEventListener('click',e=>{e.preventDefault();const p=parseInt(e.currentTarget.dataset.percent,10);allRefs.percentInput.value=p;allRefs.percentRange.value=p;recalc()})});
+    function updateActiveRatioButton(){const c=Math.round(parseInteger(allRefs.percentInput.value));allRefs.ratioButtons.forEach(b=>{if(parseInt(b.dataset.percent,10)===c){b.classList.add('active')}else{b.classList.remove('active')}})}
+    allRefs.fireToggle.addEventListener('click',()=>{const i=allRefs.fireContent.style.display==='none'||allRefs.fireContent.style.display==='';allRefs.fireContent.style.display=i?'block':'none';allRefs.fireToggle.querySelector('.arrow').style.transform=i?'rotate(180deg)':'rotate(0deg)'});
+    allRefs.addFireExpenseBtn.addEventListener('click',()=>{allRefs.fireExpenseList.appendChild(createDataRow('fire', {title: 'Proyeksi Baru'})); recalc()});
+    allRefs.fireReturnInput.addEventListener('input',()=>{lastEditedFIREInput='return';recalc()});
+    allRefs.fireYearsInput.addEventListener('input',()=>{lastEditedFIREInput='years';recalc()});
+    allRefs.exportBtn.addEventListener('click',exportData);
+    allRefs.importFile.addEventListener('change',importData);
+    allRefs.printBtn.addEventListener('click',()=>{window.print()});
+    allRefs.investYears.addEventListener('input',scheduleSave);allRefs.investMonths.addEventListener('input',scheduleSave);allRefs.investReturn.addEventListener('input',scheduleSave);allRefs.fireInitialSavings.addEventListener('input',scheduleSave);
+    allRefs.investTax.addEventListener('input', scheduleSave);
+    allRefs.fireInflation.addEventListener('input', scheduleSave); allRefs.fireTax.addEventListener('input', scheduleSave);
+    allRefs.plannerNameInput.addEventListener('input', scheduleSave);
+    
+    allRefs.investProjectionToggle.addEventListener('click', () => {
+        const content = allRefs.investProjectionContent;
+        const arrow = allRefs.investProjectionToggle.querySelector('.inline-arrow');
+        const isVisible = content.style.display === 'block';
+        content.style.display = isVisible ? 'none' : 'block';
+        arrow.style.transform = isVisible ? 'rotate(0deg)' : 'rotate(180deg)';
+    });
+
+    function calculateYearsWithPV(t,p,r,pv){if(p<=0&&t>pv)return Infinity;if(p<=0&&t<=pv)return 0;const m=Math.pow(1+r/100,1/12)-1;if(t<=pv)return 0;if(m<=0){return((t-pv)/(p*12))}const n=Math.log((t*m+p)/(pv*m+p))/Math.log(1+m);return n/12}
+    function findRequiredRateWithPV(t,p,y,pv){if(p<=0||y<=0)return 0;const n=y*12;if((p*n)+pv>=t)return 0;let l=0,h=100;for(let i=0;i<100;i++){let mid=(l+h)/2;let mr=Math.pow(1+mid/100,1/12)-1;let fv=pv*Math.pow(1+mr,n)+p*((Math.pow(1+mr,n)-1)/mr);if(fv<t)l=mid;else h=mid}return h}
+    allRefs.currencySelect.addEventListener('change',(e)=>{if(e.target.value==='custom'){allRefs.customCurrencyInput.style.display='block';currentCurrency=allRefs.customCurrencyInput.value||'$'}else{allRefs.customCurrencyInput.style.display='none';currentCurrency=e.target.value}recalc()});
+    allRefs.customCurrencyInput.addEventListener('input',(e)=>{currentCurrency=e.target.value||'$';recalc()});
+    
+    function recalcFIRE(){let t=0;let o=0;allRefs.fireExpenseList.querySelectorAll('.data-grid').forEach(r=>{const a=parseInteger(r.querySelector('.money-input').value);const f=r.querySelector('.frequency-select').value;if(f==='onetime'){o+=a}else{let m=a;if(f==='annually')m=a/12;else if(f==='semester')m=a/6;else if(f==='quarterly')m=a/3;t+=m}});allRefs.fireTotalMonthlyEl.textContent=fmtMoney(t);const rt=t*12*25;let ft=rt+o;const ty=parseDecimal(allRefs.fireYearsInput.value);const fireInflationRate=parseDecimal(allRefs.fireInflation.value)/100;if(fireInflationRate>0&&ty>0){ft=ft*Math.pow(1+fireInflationRate,ty)}allRefs.fireTargetNumberEl.textContent=fmtMoney(ft);const mi=parseInteger(allRefs.jumlahInvestEl.textContent);allRefs.fireMonthlyInvestEl.value=fmtMoney(mi);const fireTaxRate=parseDecimal(allRefs.fireTax.value)/100;const nominalReturn=parseDecimal(allRefs.fireReturnInput.value);const returnAfterTax=nominalReturn*(1-fireTaxRate);const realReturn=(fireInflationRate>0?((1+(returnAfterTax/100))/(1+fireInflationRate))-1:returnAfterTax/100)*100;const ar=realReturn;const pv=parseInteger(allRefs.fireInitialSavings.value);if(mi<=0&&ft>pv){allRefs.fireResultDisplay.textContent="Investasi bulanan harus lebih dari nol untuk mencapai target.";allRefs.fireResultDisplay.style.display='block';return}if(lastEditedFIREInput==='return'&&nominalReturn>0){const y=calculateYearsWithPV(ft,mi,ar,pv);if(y<=0){allRefs.fireResultDisplay.textContent="Target sudah tercapai dengan tabungan awal.";allRefs.fireYearsInput.value=0}else if(isFinite(y)){allRefs.fireYearsInput.value=y.toFixed(1);allRefs.fireResultDisplay.textContent=`Target FIRE tercapai dalam ±${y.toFixed(1).replace('.',',')} tahun`}else{allRefs.fireResultDisplay.textContent="Tidak mungkin tercapai dengan return ini."}allRefs.fireResultDisplay.style.display='block'}else if(lastEditedFIREInput==='years'&&ty>0){const requiredRealRate=findRequiredRateWithPV(ft,mi,ty,pv);let requiredNominalRate=requiredRealRate;if(fireInflationRate>0||fireTaxRate>0){requiredNominalRate=((1+(requiredRealRate/100))*(1+fireInflationRate)-1)*100/(1-fireTaxRate||1)}if(requiredNominalRate>0&&requiredNominalRate<100){allRefs.fireReturnInput.value=requiredNominalRate.toFixed(2);allRefs.fireResultDisplay.textContent=`Dibutuhkan return tahunan ±${requiredNominalRate.toFixed(2).replace('.',',')}%`}else if(requiredNominalRate>=100){allRefs.fireReturnInput.value=requiredNominalRate.toFixed(2);allRefs.fireResultDisplay.textContent=`Butuh return > 100%, target tidak realistis.`}else{allRefs.fireReturnInput.value=0;allRefs.fireResultDisplay.textContent=`Target tercapai tanpa return.`}allRefs.fireResultDisplay.style.display='block'}else{allRefs.fireResultDisplay.style.display='none'}}
+    function recalcInvestmentProjection(){const P=parseInteger(allRefs.jumlahInvestEl.textContent);const nominalRate=parseDecimal(allRefs.investReturn.value);const taxRate=parseDecimal(allRefs.investTax.value)/100;const annualRate=nominalRate*(1-taxRate);const years=parseInteger(allRefs.investYears.value);const months=parseInteger(allRefs.investMonths.value);if(P<=0||(years<=0&&months<=0)){allRefs.projectedSavingsEl.textContent=fmtMoney(0);return}const n=years*12+months;if(annualRate<=0){allRefs.projectedSavingsEl.textContent=fmtMoney(P*n);return}const r=Math.pow(1+annualRate/100,1/12)-1;const fv=P*((Math.pow(1+r,n)-1)/r);allRefs.projectedSavingsEl.textContent=fmtMoney(fv)}
+
+    function recalc(){let totalPendapatan=0;allRefs.pendapatanList.querySelectorAll('.data-grid').forEach(r=>{const a=parseInteger(r.querySelector('.money-input').value);const f=r.querySelector('.frequency-select').value;let ma=a;if(f==='annually')ma=a/12;else if(f==='semester')ma=a/6;else if(f==='quarterly')ma=a/3;totalPendapatan+=ma});allRefs.totalPendapatanEl.textContent=fmtMoney(totalPendapatan);let tpe=0;allRefs.pengeluaranList.querySelectorAll('.data-grid').forEach(r=>{const a=parseInteger(r.querySelector('.money-input').value);const f=r.querySelector('.frequency-select').value;if(f!=='onetime'){let ma=a;if(f==='annually')ma=a/12;else if(f==='semester')ma=a/6;else if(f==='quarterly')ma=a/3;tpe+=ma}});allRefs.totalPengeluaranEl.textContent=fmtMoney(tpe);const si=Math.max(0,totalPendapatan-tpe);const p=Math.max(50,Math.min(100,parseInteger(allRefs.percentInput.value)));const ji=Math.round(si*p/100);const sp=Math.round(si-ji);allRefs.jumlahInvestEl.textContent=fmtMoney(ji);allRefs.sisaPribadiEl.textContent=fmtMoney(sp);updateActiveRatioButton();recalcInvestmentProjection();recalcFIRE();formatAllVisibleNumbers()}
+    
+    const STORAGE_KEY='kalkulator-penghasilan-v17';
+    
+    function saveState() {
+        const state = {
+            plannerName: allRefs.plannerNameInput.value,
+            incomes: [], expenses: [], fireExpenses: [],
+            percent: allRefs.percentInput.value,
+            fireReturn: allRefs.fireReturnInput.value,
+            fireYears: allRefs.fireYearsInput.value,
+            lastEditedFIRE: lastEditedFIREInput,
+            currency: allRefs.currencySelect.value,
+            customCurrency: allRefs.customCurrencyInput.value,
+            investYears: allRefs.investYears.value,
+            investMonths: allRefs.investMonths.value,
+            investReturn: allRefs.investReturn.value,
+            fireInitialSavings: unformatForEditing(allRefs.fireInitialSavings.value),
+            investTax: allRefs.investTax.value,
+            fireInflation: allRefs.fireInflation.value,
+            fireTax: allRefs.fireTax.value
+        };
+    
+        const gatherData = (listElement, targetArray) => {
+            listElement.querySelectorAll('.data-grid').forEach(r => {
+                targetArray.push({
+                    title: r.querySelector('.title-input').value,
+                    value: unformatForEditing(r.querySelector('.money-input').value),
+                    frequency: r.querySelector('.frequency-select').value,
+                    description: r.querySelector('.description-input').value
+                });
+            });
+        };
+    
+        gatherData(allRefs.pendapatanList, state.incomes);
+        gatherData(allRefs.pengeluaranList, state.expenses);
+        gatherData(allRefs.fireExpenseList, state.fireExpenses);
+        return state;
+    }
+
+    function loadState(s=null){try{if(!s){const raw=localStorage.getItem(STORAGE_KEY);if(!raw){defaultIncomes.forEach(d=>allRefs.pendapatanList.appendChild(createDataRow('income', d)));defaults.forEach(d=>allRefs.pengeluaranList.appendChild(createDataRow('expense', d)));defaultFireExpenses.forEach(d=>allRefs.fireExpenseList.appendChild(createDataRow('fire', d)));recalc();return}s=JSON.parse(raw)}if(s.plannerName){allRefs.plannerNameInput.value=s.plannerName}if(s.currency){allRefs.currencySelect.value=s.currency;if(s.currency==='custom'){allRefs.customCurrencyInput.style.display='block';allRefs.customCurrencyInput.value=s.customCurrency||'$';currentCurrency=s.customCurrency||'$'}else{currentCurrency=s.currency}}
+    const populate=(listEl,data,type,defaults)=>{listEl.innerHTML='';const items=Array.isArray(data)&&data.length?data:defaults;items.forEach(it=>listEl.appendChild(createDataRow(type,it)))};populate(allRefs.pendapatanList,s.incomes,'income',defaultIncomes);populate(allRefs.pengeluaranList,s.expenses,'expense',defaults);populate(allRefs.fireExpenseList,s.fireExpenses,'fire',defaultFireExpenses);if(s.percent!==undefined){let p=parseInteger(s.percent);if(p<50)p=50;allRefs.percentInput.value=p;allRefs.percentRange.value=p}if(s.fireReturn!==undefined)allRefs.fireReturnInput.value=s.fireReturn;if(s.fireYears!==undefined)allRefs.fireYearsInput.value=s.fireYears;if(s.lastEditedFIRE!==undefined)lastEditedFIREInput=s.lastEditedFIRE;if(s.investYears!==undefined)allRefs.investYears.value=s.investYears;if(s.investMonths!==undefined)allRefs.investMonths.value=s.investMonths;if(s.investReturn!==undefined)allRefs.investReturn.value=s.investReturn;if(s.fireInitialSavings!==undefined)allRefs.fireInitialSavings.value=s.fireInitialSavings;if(s.investTax!==undefined)allRefs.investTax.value=s.investTax;if(s.fireInflation!==undefined)allRefs.fireInflation.value=s.fireInflation;if(s.fireTax!==undefined)allRefs.fireTax.value=s.fireTax;}catch(err){console.warn('Load state failed',err)}recalc()}
+    
+    let saveTimer=null;
+    function scheduleSave(){if(saveTimer)clearTimeout(saveTimer);saveTimer=setTimeout(()=>{localStorage.setItem(STORAGE_KEY,JSON.stringify(saveState()));recalc()},400)}
+    document.addEventListener('change',e=>{if(e.target.matches('.frequency-select, #currency-select')){scheduleSave()}});
+    
+    function formatAllVisibleNumbers(){document.querySelectorAll('input.money-input').forEach(input=>{if(document.activeElement===input)return;const num=parseInteger(input.value);const config=currencyConfig[currentCurrency]||{separator:','};input.value=formatForDisplay(num,config.separator)})};
+    document.addEventListener('focusin',e=>{if(e.target&&e.target.classList.contains('money-input')){e.target.value=unformatForEditing(e.target.value)}});
+    document.addEventListener('focusout',e=>{if(e.target&&e.target.classList.contains('money-input')){const num=parseInteger(e.target.value);const config=currencyConfig[currentCurrency]||{separator:','};e.target.value=formatForDisplay(num,config.separator)}});
+    
+    function exportData(){const state=saveState();const dataStr="data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(state,null,2));const dlAnchorElem=document.createElement('a');dlAnchorElem.setAttribute("href",dataStr);dlAnchorElem.setAttribute("download",`Financial Planner ${new Date().toISOString().slice(0,10)}.json`);dlAnchorElem.click()}
+    function importData(e){const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=function(event){try{const newState=JSON.parse(event.target.result);loadState(newState)}catch(err){alert('Error: File tidak valid.')}};reader.readAsText(file);e.target.value=null;}
+
+    let inputsChangedForPrint = [];
+    
+    window.addEventListener('beforeprint', () => {
+      const nameInput = document.getElementById('planner-name-input');
+      const name = nameInput ? nameInput.value.trim() : '';
+      const displayName = name ? `${name}` : '(Nama)';
+      const sig1 = document.getElementById('print-signature-name-1');
+      const sig2 = document.getElementById('print-signature-name-2');
+      if (sig1) sig1.textContent = displayName;
+      if (sig2) sig2.textContent = displayName;
+
+      inputsChangedForPrint = []; // Reset
+      const idsToCheck = [
+        'invest-years', 'invest-months', 'invest-return', 'invest-tax',
+        'fire-initial-savings', 'fire-return-input', 'fire-years-input', 'fire-inflation', 'fire-tax'
+      ];
+      
+      idsToCheck.forEach(id => {
+        const input = document.getElementById(id);
+        if (input && input.value.trim() === '') {
+          input.value = '0';
+          inputsChangedForPrint.push(input); // Simpan referensi input yang diubah
+        }
+      });
+    });
+
+    window.addEventListener('afterprint', () => {
+      const sig1 = document.getElementById('print-signature-name-1');
+      const sig2 = document.getElementById('print-signature-name-2');
+      if (sig1) sig1.textContent = '(Nama)';
+      if (sig2) sig2.textContent = '(Nama)';
+
+      inputsChangedForPrint.forEach(input => {
+        input.value = ''; // Kembalikan menjadi kosong
+      });
+      inputsChangedForPrint = []; // Kosongkan array
+    });
+
+    function initSortable(el) { new Sortable(el, { handle: '.drag-handle', animation: 150, onEnd: scheduleSave }); }
+    initSortable(allRefs.pendapatanList);
+    initSortable(allRefs.pengeluaranList);
+    initSortable(allRefs.fireExpenseList);
+
+    loadState();
+  </script>
+</body>
+</html>
